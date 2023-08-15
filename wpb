@@ -1,26 +1,51 @@
 #!/bin/bash
 
+# Load variables from .env if exists
+if [[ -f .env ]]; then
+    source .env
+fi
+
 function init_project() {
+    # Check if wp-cli is installed
+    if [[ ! -f ./bin/wp ]]; then
+        echo "wp-cli not found. Installing..."
+        mkdir -p ./bin
+        curl -o ./bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        chmod +x ./bin/wp
+    fi
+
+    # Use the local wp binary
+    WP_CLI=./bin/wp
+
     # 1. Download the latest WordPress and extract to ./public_html/
     wget -qO- https://wordpress.org/latest.tar.gz | tar xvz -C ./public_html --strip-components=1
 
-    # 2. Initialize the database and wp-config.php (wp-cli can be helpful here)
-    # Assuming you have wp-cli installed on your machine
-    wp core config --dbname=wp_db --dbuser=wp_user --dbpass=mysql123 --dbhost=db --path=./public_html/
+    # 2. Initialize the database and wp-config.php using wp-cli
+    $WP_CLI core config --dbname=wp_db --dbuser=wp_user --dbpass=mysql123 --dbhost=db --path=./public_html/
     # More wp-cli commands might be needed based on your setup
 }
 
 function config_project() {
-    # 1. Ask for the name of the project
-    read -p "Enter project name: " project_name
+    # 1. Ask for the name of the project and domain name
+    read -p "Enter project name (${PROJECT_NAME:-default_project_name}): " project_name
+    read -p "Enter domain name (${DOMAIN_NAME:-default_domain_name}): " domain_name
 
-    # 2. Ask for domain name
-    read -p "Enter domain name: " domain_name
+    PROJECT_NAME=${project_name:-$PROJECT_NAME}
+    DOMAIN_NAME=${domain_name:-$DOMAIN_NAME}
 
-    # 3. Check if SSL certs exist
-    if [[ ! -f ./ssl/key.pem || ! -f ./ssl/cert.pem ]]; then
-        echo "SSL certificates not found or invalid. Generating self-signed certificates..."
-        openssl req -x509 -newkey rsa:4096 -keyout ./ssl/key.pem -out ./ssl/cert.pem -days 365 -nodes -subj "/CN=$domain_name"
+    # Save to .env file
+    echo "PROJECT_NAME=$PROJECT_NAME" > .env
+    echo "DOMAIN_NAME=$DOMAIN_NAME" >> .env
+
+    # 3. Check if SSL certs exist and are valid for the chosen domain
+    is_valid=$(openssl x509 -noout -subject -in ./ssl/cert.pem 2>/dev/null | grep -o "$DOMAIN_NAME")
+
+    if [[ ! -f ./ssl/key.pem || ! -f ./ssl/cert.pem || -z "$is_valid" ]]; then
+        echo "SSL certificates not found, invalid, or mismatched with the domain. Would you like to regenerate?"
+        read -p "Regenerate SSL certificates? (y/n): " choice
+        if [[ "$choice" == "y" ]]; then
+            openssl req -x509 -newkey rsa:4096 -keyout ./ssl/key.pem -out ./ssl/cert.pem -days 365 -nodes -subj "/CN=$DOMAIN_NAME"
+        fi
     fi
 }
 
