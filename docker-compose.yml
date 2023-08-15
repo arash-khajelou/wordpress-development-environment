@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql123
+      MYSQL_DATABASE: wp_db
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: mysql123
+
+  wordpress:
+    build:
+      context: .
+      dockerfile: ./wordpress/Dockerfile
+    depends_on:
+      - db
+    volumes:
+      - ./public_html:/var/www/html
+
+  nginx-proxy:
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - wordpress
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: mysql123
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+
+volumes:
+  db_data:

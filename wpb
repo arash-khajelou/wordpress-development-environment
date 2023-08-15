@@ -1,0 +1,71 @@
+#!/bin/bash
+
+function init_project() {
+    # 1. Download the latest WordPress and extract to ./public_html/
+    wget -qO- https://wordpress.org/latest.tar.gz | tar xvz -C ./public_html --strip-components=1
+
+    # 2. Initialize the database and wp-config.php (wp-cli can be helpful here)
+    # Assuming you have wp-cli installed on your machine
+    wp core config --dbname=wp_db --dbuser=wp_user --dbpass=mysql123 --dbhost=db --path=./public_html/
+    # More wp-cli commands might be needed based on your setup
+}
+
+function config_project() {
+    # 1. Ask for the name of the project
+    read -p "Enter project name: " project_name
+
+    # 2. Ask for domain name
+    read -p "Enter domain name: " domain_name
+
+    # 3. Check if SSL certs exist
+    if [[ ! -f ./ssl/key.pem || ! -f ./ssl/cert.pem ]]; then
+        echo "SSL certificates not found or invalid. Generating self-signed certificates..."
+        openssl req -x509 -newkey rsa:4096 -keyout ./ssl/key.pem -out ./ssl/cert.pem -days 365 -nodes -subj "/CN=$domain_name"
+    fi
+}
+
+function start_project() {
+    # 1. Update the hosts file
+    echo "127.0.0.1 $domain_name" | sudo tee -a /etc/hosts
+
+    # 2. Start docker-compose
+    docker-compose up -d
+}
+
+function stop_project() {
+    # 1. Stop docker-compose
+    docker-compose stop
+
+    # 2. Remove the domain from the hosts file
+    sudo sed -i "/$domain_name/d" /etc/hosts
+}
+
+function down_project() {
+    # 1. Bring docker-compose down
+    docker-compose down
+
+    # 2. Remove the domain from the hosts file
+    sudo sed -i "/$domain_name/d" /etc/hosts
+}
+
+case "$1" in
+    init)
+        init_project
+        ;;
+    config)
+        config_project
+        ;;
+    start)
+        start_project
+        ;;
+    stop)
+        stop_project
+        ;;
+    down)
+        down_project
+        ;;
+    *)
+        echo "Usage: ./wpb {init|config|start|stop|down}"
+        exit 1
+        ;;
+esac
