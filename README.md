@@ -14,7 +14,7 @@ git clone https://github.com/arash-khajelou/wordpress-development-environment.gi
 2. Initialize the WP project
 ```bash
 mv wordpress-development-environment project-name # Rename the project directory
-wpb start # To run the project on port 80/443
+./wpb start # To run the project on port 80/443
 ```
 
 ## Working with a new project
@@ -28,9 +28,9 @@ git clone https://github.com/arash-khajelou/wordpress-development-environment.gi
 2. Initialize the WP project
 ```bash
 mv wordpress-development-environment project-name # Rename the project directory
-wpb init # To download a fresh WP installation
-wpb config # To configure the project
-wpb start # To run the project on port 80/443
+./wpb init # To download a fresh WP installation
+./wpb config # To configure the project
+./wpb start # To run the project on port 80/443
 ```
 
 3. Check the output
@@ -40,7 +40,7 @@ So you can now open domainname.com in your browser and see the output of your se
 ## Stop/Kill the process
 In order to stop or kill the process, you can run the following commands:
 ```bash
-wpb stop # To stop the containers and keep them as they are.
-wpb down # To stop and remove the containers and only keep their existing volumes.
+./wpb stop # To stop the containers and keep them as they are.
+./wpb down # To stop and remove the containers and only keep their existing volumes.
 ```
 
